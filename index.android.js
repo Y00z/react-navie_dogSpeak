@@ -30,7 +30,6 @@ export default class rn_pet extends Component {
 
     render() {
         return (
-
             <TabNavigator
                 tabBarStyle={{height: 53, overflow: 'hidden'}}>
                 {this._renderTabBarItem('account', "首页", 'ios-videocam-outline', 'ios-videocam', Account,)}
