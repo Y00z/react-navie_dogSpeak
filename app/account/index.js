@@ -75,10 +75,13 @@ export default class Account extends Component {
     _renderRow(rowData) {
         return (
             <View style={{marginBottom: 5}}>
-                <View style={{backgroundColor: 'white', alignItems: 'center'}}>
-                    <Text style={styles.accountTopItemTextStyles}>{rowData.title}</Text>
+                <View>
+                    <View style={{backgroundColor: 'white', alignItems: 'center'}}>
+                        <Text style={styles.accountTopItemTextStyles}>{rowData.title}</Text>
+                    </View>
+                    <Image style={styles.accountImgStyles} source={{uri: rowData.imgUrl}}/>
+                    <Icon style={styles.play} size={30} name="ios-play"/>
                 </View>
-                <Image style={styles.accountImgStyles} source={{uri: rowData.imgUrl}}/>
                 <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                     <View style={styles.accountBottomItemStyles}>
                         <Icon size={30} name="ios-heart-outline"/>
@@ -96,6 +99,19 @@ export default class Account extends Component {
 
 
 const styles = StyleSheet.create({
+    play: {
+        borderRadius: 25,
+        borderColor: 'white',
+        borderWidth: 1,
+        color: 'orange',
+        position: 'absolute',
+        bottom: 15,
+        right: 30,
+        width: 40,
+        height: 40,
+        paddingTop: 5,
+        paddingLeft: 15
+    },
     accountTopItemTextStyles: {
         fontSize: 17,
         color: 'black',
