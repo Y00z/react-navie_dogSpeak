@@ -12,7 +12,8 @@ import {
     Image,
     Navigator,
     ListView,
-    ActivityIndicator
+    ActivityIndicator,
+    RefreshControl
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 var Dimensions = require("Dimensions");
@@ -31,7 +32,9 @@ export default class Account extends Component {
             dataSource: new ListView.DataSource({
                 rowHasChanged: (r1, r2) => r1 !== r2
             }),
-            isMoreLoading: false    //是否正在加载更多数据
+            isMoreLoading: false,    //是否正在加载更多数据
+            isRefreshing: false     //是否正在刷新
+
         }
     }
 
@@ -54,9 +57,25 @@ export default class Account extends Component {
                     onEndReachedThreshold={20}
                     renderFooter={() => this._renderFooter()}
                     showsVerticalScrollIndicator={false}    //隐藏纵向滚动条
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={this.state.isRefreshing}
+                            onRefresh={this._onRefresh.bind(this)}
+                            tintColor="#ff0000"
+                            title="拼命加载中..."
+                            titleColor="#00ff00"
+                            colors={['#ff0000', '#00ff00', '#0000ff']}
+                            progressBackgroundColor="#ffff00"/> }
                 />
             </View>
         )
+    }
+
+    _onRefresh() {
+        if (this.state.isRefreshing) {
+            return null;
+        }
+        this.initData(0);
     }
 
     _renderFooter() {       //全部加载完毕的时候。
@@ -95,35 +114,55 @@ export default class Account extends Component {
     }
 
     initData(page) {
-        this.setState({
-            isMoreLoading: true
-        })
+        if (page !== 0) {       //如果page不等于0，说明不是下拉刷新，只设置加载更多就行了
+            this.setState({
+                isMoreLoading: true,
+            })
+        } else {                //如果page等于0，说明是下拉刷新，设置下拉刷新就行了
+            this.setState({
+                isRefreshing: true
+            })
+        }
+
         fetch(this.props.uri_api + "&page=" + page)
             .then((response) => response.json())
             .then((response) => {
                 var data = Mock.mock(response);
-                this.parseData(data);
+                var item = cacheResult.items.slice();  //把缓存中的item数组放到一个新的数组里面
+                if (page !== 0) {
+                    item = item.concat(data.data)           //item里面追加新加载的数据。
+                    cacheResult.nextPage += 1
+                } else {
+                    item = data.data
+                }
+                cacheResult.items = item               //cacheResult里面放着所有加载的数据
+                cacheResult.total = data.total
+                setTimeout(() => {
+                    if (page !== 0) {
+                        this.setState({
+                            isMoreLoading: false,
+                            dataSource: this.state.dataSource.cloneWithRows(cacheResult.items)
+                        })
+                    } else {
+                        this.setState({
+                            isRefreshing: false,
+                            dataSource: this.state.dataSource.cloneWithRows(cacheResult.items)
+                        })
+                    }
+                }, 300)
             })
             .catch((error) => {
-                this.setState({
-                    isMoreLoading: false
-                });
+                if (page !== 0) {
+                    this.setState({
+                        isMoreLoading: false,
+                    })
+                } else {
+                    this.setState({
+                        isRefreshing: false
+                    })
+                }
                 console.error(error)
             })
-    }
-
-    parseData(data) {
-        var item = cacheResult.items.slice();  //把缓存中的item数组放到一个新的数组里面
-        item = item.concat(data.data)           //item里面追加新加载的数据。
-        cacheResult.items = item               //cacheResult里面放着所有加载的数据
-        cacheResult.total = data.total
-        setTimeout(()=> {
-            this.setState({
-                isMoreLoading: false,
-                dataSource: this.state.dataSource.cloneWithRows(cacheResult.items)
-            });
-        }, 800)
-
     }
 
     _renderRow(rowData) {
