@@ -3,4 +3,7 @@
 
 npm install rnpm -g
 
-rnpm link react-native-vector-icons 
+rnpm link react-native-vector-icons
+
+
+rnpm link react-native-video

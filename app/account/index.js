@@ -13,17 +13,20 @@ import {
     Navigator,
     ListView,
     ActivityIndicator,
-    RefreshControl
+    RefreshControl,
+    TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 var Dimensions = require("Dimensions");
 var {width, height} = Dimensions.get('window');
 var Mock = require('mockjs');
+var Detail = require('./detail');
 var cacheResult = {
     nextPage: 1,
     items: [],
     total: 0
 }
+
 export default class Account extends Component {
 
     constructor(props) {
@@ -33,13 +36,14 @@ export default class Account extends Component {
                 rowHasChanged: (r1, r2) => r1 !== r2
             }),
             isMoreLoading: false,    //是否正在加载更多数据
-            isRefreshing: false     //是否正在刷新
-
+            isRefreshing: false,     //是否正在刷新
+            isLiek: false
         }
     }
 
     static defaultProps = {
-        uri_api: 'http://rap.taobao.org/mockjs/15752/init?reqParam=dog'
+        uri_api: 'http://rap.taobao.org/mockjs/15752/init?reqParam=dog',
+        liek_api: 'http://rap.taobao.org/mockjs/15752/liek?up=123&accessToken=321'
     }
 
     render() {
@@ -71,14 +75,14 @@ export default class Account extends Component {
         )
     }
 
-    _onRefresh() {
+    _onRefresh = () => {
         if (this.state.isRefreshing) {
             return null;
         }
         this.initData(0);
     }
 
-    _renderFooter() {       //全部加载完毕的时候。
+    _renderFooter = () => {       //全部加载完毕的时候。
         if (!this._hasMore() && cacheResult.total !== 0) {
             return <View>
                 <Text style={{fontSize: 15, color: 'gray', textAlign: 'center'}}>已经没有更多数据了</Text>
@@ -92,7 +96,7 @@ export default class Account extends Component {
         return <ActivityIndicator style={{height: 80}} size="small"/>
     }
 
-    _hasMore() {     //当视频总量，等于  已经缓存了的视频总量
+    _hasMore = () => {     //当视频总量，等于  已经缓存了的视频总量
         if (cacheResult.total <= cacheResult.items.length) {
             return false
         } else {    //当视频总量，不等于  已经缓存了的视频总量，说明还有数据
@@ -100,7 +104,7 @@ export default class Account extends Component {
         }
     }
 
-    _fetchMore() {     //加载更多，如果没有了更多数据，或者正在加载数据的状态中，就return
+    _fetchMore = () => {     //加载更多，如果没有了更多数据，或者正在加载数据的状态中，就return
         if (!this._hasMore() || this.state.isMoreLoading) {
             return null;
         }
@@ -113,7 +117,7 @@ export default class Account extends Component {
         this.initData(1)
     }
 
-    initData(page) {
+    initData = (page) => {
         if (page !== 0) {       //如果page不等于0，说明不是下拉刷新，只设置加载更多就行了
             this.setState({
                 isMoreLoading: true,
@@ -165,21 +169,28 @@ export default class Account extends Component {
             })
     }
 
-    _renderRow(rowData) {
+    _renderRow = (rowData, sectionID, rowID, highlightRow) => {
         return (
             <View style={{marginBottom: 5}}>
-                <View>
-                    <View style={{backgroundColor: 'white', alignItems: 'center'}}>
-                        <Text style={styles.accountTopItemTextStyles}>{rowData.title}</Text>
+                <TouchableOpacity onPress={() => this.pushToAccountDetail(rowData, rowID)}>
+                    <View>
+                        <View style={{backgroundColor: 'white', alignItems: 'center'}}>
+                            <Text style={styles.accountTopItemTextStyles}>{rowData.title}</Text>
+                        </View>
+                        <Image style={styles.accountImgStyles} source={{uri: rowData.imgUrl}}/>
+                        <Icon style={styles.play} size={30} name="ios-play"/>
                     </View>
-                    <Image style={styles.accountImgStyles} source={{uri: rowData.imgUrl}}/>
-                    <Icon style={styles.play} size={30} name="ios-play"/>
-                </View>
+                </TouchableOpacity>
                 <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                    <View style={styles.accountBottomItemStyles}>
-                        <Icon size={30} name="ios-heart-outline"/>
-                        <Text style={{marginLeft: 10}}>喜欢</Text>
-                    </View>
+                    <TouchableOpacity onPress={() => this._up()}>
+                        <View style={styles.accountBottomItemStyles}>
+                            <Icon size={30}
+                                  name={this.state.isLiek ? "ios-heart" : "ios-heart-outline"}
+                                  style={this.state.isLiek ? [styles.up] : null}
+                            />
+                            <Text style={{marginLeft: 10}}>喜欢</Text>
+                        </View>
+                    </TouchableOpacity>
                     <View style={styles.accountBottomItemStyles}>
                         <Icon size={30} name="ios-chatboxes-outline"/>
                         <Text style={{marginLeft: 10}}>评论</Text>
@@ -188,10 +199,42 @@ export default class Account extends Component {
             </View>
         )
     }
+
+    pushToAccountDetail = (rowData, rowID) => {
+        this.props.navigator.push({
+            component: Detail,
+            title: '详情页',
+            passProps: {
+                data: rowData,
+                rowId: rowID
+            }
+        })
+    }
+
+    _up = () => {
+        fetch(this.props.liek_api + "&page=")
+            .then((response) => response.json())
+            .then((response) => {
+                if (response.success) {
+                    this.setState({
+                        isLiek: !this.state.isLiek
+                    })
+                }else{
+                    alert("点赞错误");
+                }
+            })
+            .catch((error) => {
+                alert("点赞错误");
+                console.error(error)
+            })
+    }
 }
 
 
 const styles = StyleSheet.create({
+    up: {
+        color: 'red'
+    },
     play: {
         borderRadius: 25,
         borderColor: 'white',
