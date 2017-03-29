@@ -21,7 +21,7 @@ var Dimensions = require("Dimensions");
 var {width, height} = Dimensions.get('window');
 var Mock = require('mockjs');
 var Detail = require('./detail');
-var cacheResult = {
+var cacheResult = {     //缓存的数据。
     nextPage: 1,
     items: [],
     total: 0
