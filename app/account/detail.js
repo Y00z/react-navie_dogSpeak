@@ -14,9 +14,11 @@ import {
     ActivityIndicator,
     ScrollView,
     ListView,
-    RefreshControl
+    TextInput,
+    Modal
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Button from 'react-native-button';
 var Video = require('react-native-video').default;
 var Mock = require('mockjs');
 var Dimensions = require("Dimensions");
@@ -44,12 +46,17 @@ export default class detail extends Component {
 
 
             isMoreLoading: false,    //是否正在加载更多数据
-            isRefreshing: false,     //是否正在刷新
+
+            //modal
+            modalVisible: false,
+            content: '',
+            isSending: false,         //是否正在发送
         }
     }
 
     static defaultProps = {
-        pinglun_api: 'http://rap.taobao.org/mockjs/15752/pinglun?reqParam=233'
+        pinglun_api: 'http://rap.taobao.org/mockjs/15752/pinglun?reqParam=233',
+        submit_api: 'http://rap.taobao.org/mockjs/15752/submit'
     }
 
     render() {
@@ -114,8 +121,6 @@ export default class detail extends Component {
                                 <Text>{this.props.data.description}</Text>
                             </View>
                         </View>
-                        <View style={styles.lineStyles}></View>
-
                         <ListView
                             dataSource={this.state.dataSource}
                             renderRow={this._renderRow}
@@ -125,27 +130,124 @@ export default class detail extends Component {
                             onEndReachedThreshold={20}
                             showsVerticalScrollIndicator={false}    //隐藏纵向滚动条
                             renderFooter={() => this._renderFooter()}
-                            refreshControl={
-                        <RefreshControl
-                            refreshing={this.state.isRefreshing}
-                            onRefresh={this._onRefresh.bind(this)}
-                            tintColor="#ff0000"
-                            title="拼命加载中..."
-                            titleColor="#00ff00"
-                            colors={['#ff0000', '#00ff00', '#0000ff']}
-                            progressBackgroundColor="#ffff00"/> }
+                            renderHeader={()=>this._renderHeader()}
                         />
                     </ScrollView>
+                </View>
+
+                <Modal
+                    animationType={"slide"}         //modal弹出的动画
+                    visible={this.state.modalVisible}       //是否可见
+                    onRequestClose={()=>this._onRequestClose()}           //关闭的时候调用
+                >
+
+                    <View style={styles.modalContainer}>
+                        <TouchableOpacity onPress={()=>this._touchModal()}>
+                            <Icon size={60} name="ios-close-outline"/>
+                        </TouchableOpacity>
+                        <TextInput
+                            placeholder="来评论一下啊。"
+                            style={styles.textInput}
+                            multiline={true}            //是否可以输入多行文字
+                            defaultValue={this.state.content}
+
+                            onChangeText={(text)=>{
+                                this.setState({
+                                    content:text
+                                })
+                            }}
+                        />
+                        <Button
+                            containerStyle={{padding:10, height:45, width:width*0.8,overflow:'hidden', borderRadius:4, backgroundColor: 'white',borderWidth:2,borderColor:'red',paddingBottom:3 }}
+                            style={{fontSize: 20, color: 'green'}}
+                            onPress={()=>this._submit()}>
+                            发送
+                        </Button>
+
+                        {this.state.isSending ?
+                            <ActivityIndicator style={{height: 180}} size="small"/> : null
+                        }
+                    </View>
+                </Modal>
+            </View>
+        )
+    }
+
+    _touchModal = () => {
+        this.setState({
+            modalVisible: false
+        })
+    }
+
+    _submit = () => {
+
+        if (this.state.content.length == 0)
+            return alert("评论不能为空")
+
+        if (this.state.isSending)
+            return alert("正在评论中");
+
+        this.setState({
+            isSending: true
+        })
+        fetch(this.props.submit_api, {
+            method: "POST",
+            body: "accessToken=Nikhil&content=" + this.state.content + "&reviewers=easytoguess"
+        })
+            .then((response) => response.json())
+            .then((response) => {
+                if (response.success) {
+                    var items = cacheResult.items.slice();//先拿到之前的item
+                    items = [{          //在前面拼接一条数据。
+                        comment: '悠哉,',
+                        commentImg: 'https://dummyimage.com/640x640/70b984)',
+                        content: this.state.content
+                    }].concat(items)
+
+                    cacheResult.items = items           //拼接后，设置新的缓存数据。
+                    cacheResult.total = cacheResult.total + 1
+                    this.setState({
+                        content: '',
+                        modalVisible: false,
+                        dataSource: this.state.dataSource.cloneWithRows(cacheResult.items),
+                        isSending: false
+                    })
+                }
+            })
+            .catch((error) => {
+                console.error(error)
+            })
+    }
+
+    _renderHeader = () => {
+        return (
+            <View>
+                <View>
+                    <TextInput
+                        placeholder="来评论一下啊。"
+                        style={styles.textInput}
+                        multiline={true}            //是否可以输入多行文字
+                        onFocus={()=>this._onFocus()}   //输入框获得焦点
+                    />
+                </View>
+                <View style={{padding:8}}>
+                    <Text style={{fontSize:12,color:'black'}}>精彩评论</Text>
+                    <View style={styles.lineStyles}></View>
                 </View>
             </View>
         )
     }
 
-    _onRefresh = () => {
-        if (this.state.isRefreshing) {
-            return null;
+    _onRequestClose = () => {
+
+    }
+
+    _onFocus = () => {
+        if (!this.state.modalVisible) {
+            this.setState({
+                modalVisible: true
+            })
         }
-        this.initData(0);
     }
 
     _renderFooter = () => {       //全部加载完毕的时候。
@@ -183,7 +285,7 @@ export default class detail extends Component {
             <View style={{flexDirection:'row',padding:8}}>
                 <Image style={styles.commentStyles} source={{uri:rowData.commentImg}}/>
                 <View style={{flexDirection:'column',width:width*0.85,marginLeft:5,justifyContent:'center'}}>
-                    <Text style={{color:'black',fontSize:7}}>{rowData.comment}</Text>
+                    <Text style={{color:'black',fontSize:10}}>{rowData.comment}</Text>
                     <Text>{rowData.content}</Text>
                 </View>
             </View>
@@ -198,10 +300,6 @@ export default class detail extends Component {
         if (page !== 0) {       //如果page不等于0，说明不是下拉刷新，只设置加载更多就行了
             this.setState({
                 isMoreLoading: true,
-            })
-        } else {                //如果page等于0，说明是下拉刷新，设置下拉刷新就行了
-            this.setState({
-                isRefreshing: true
             })
         }
 
@@ -224,11 +322,6 @@ export default class detail extends Component {
                             isMoreLoading: false,
                             dataSource: this.state.dataSource.cloneWithRows(cacheResult.items)
                         })
-                    } else {
-                        this.setState({
-                            isRefreshing: false,
-                            dataSource: this.state.dataSource.cloneWithRows(cacheResult.items)
-                        })
                     }
                 }, 300)
             })
@@ -236,10 +329,6 @@ export default class detail extends Component {
                 if (page !== 0) {
                     this.setState({
                         isMoreLoading: false,
-                    })
-                } else {
-                    this.setState({
-                        isRefreshing: false
                     })
                 }
                 console.error(error)
@@ -314,6 +403,16 @@ export default class detail extends Component {
 
 
 const styles = StyleSheet.create({
+    modalContainer: {
+        alignItems: 'center'
+    },
+    textInput: {
+        width: width * 0.98,
+        height: 130,
+        borderWidth: 1,
+        borderRadius: 3,
+        borderColor: '#ccc',
+    },
     commentStyles: {
         width: 40,
         height: 40,

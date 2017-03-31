@@ -37,7 +37,9 @@ export default class Account extends Component {
             }),
             isMoreLoading: false,    //是否正在加载更多数据
             isRefreshing: false,     //是否正在刷新
-            isLiek: false
+            isLiek: false,
+
+            progress:0
         }
     }
 
@@ -177,7 +179,9 @@ export default class Account extends Component {
                         <View style={{backgroundColor: 'white', alignItems: 'center'}}>
                             <Text style={styles.accountTopItemTextStyles}>{rowData.title}</Text>
                         </View>
-                        <Image style={styles.accountImgStyles} source={{uri: rowData.imgUrl}}/>
+                        <Image style={styles.accountImgStyles} source={{uri: rowData.imgUrl}}
+                               onProgress={(e) => this.setState({progress: Math.round(100 * e.nativeEvent.loaded / e.nativeEvent.total)})}
+                        />
                         <Icon style={styles.play} size={30} name="ios-play"/>
                     </View>
                 </TouchableOpacity>
