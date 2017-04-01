@@ -11,7 +11,8 @@ import {
     Text,
     View,
     Image,
-    Navigator
+    Navigator,
+    AsyncStorage
 } from 'react-native';
 import TabNavigator from 'react-native-tab-navigator';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -19,16 +20,61 @@ import Icon from 'react-native-vector-icons/Ionicons';
 var Account = require('./app/account/index')
 var Edit = require('./app/edit/index')
 var Creation = require('./app/creation/index')
+var Login = require('./app/account/login')
+
 
 export default class rn_pet extends Component {
     constructor(props) {
         super(props)
         this.state = {
-            selectedTab: "account"
+            selectedTab: "account",
+            user: null,             //用户信息
+            logined: false         //是否登录的。
         }
     }
 
+    _afterLogin = (user) => {   //把user转换字符串储存起来
+        AsyncStorage.setItem('user', JSON.stringify(user))
+        this.setState({
+            user: user,
+            logined: true
+        })
+    }
+
+    _logout = () => {
+        AsyncStorage.removeItem('user')
+        this.setState({
+            user: null,
+            logined: false
+        })
+    }
+
+    componentDidMount() {
+        this._asyncAppStatus()
+    }
+
+    _asyncAppStatus = () => {
+        AsyncStorage.getItem('user')
+            .then((data) => {
+                var user;
+                var newStatus = {}
+                if (data) {       //如果data存在，就把data转换成json对象
+                    user = JSON.parse(data)
+                }
+                if (user && user.accessToken) {
+                    newStatus.user = user
+                    newStatus.logined = true
+                } else {
+                    newStatus.logined = false
+                }
+                this.setState(newStatus)
+            })
+    }
+
     render() {
+        if (!this.state.logined)
+            return <Login afterLogin={this._afterLogin}/>
+
         return (
             <TabNavigator
                 tabBarStyle={{height: 53, overflow: 'hidden'}}>
@@ -36,11 +82,10 @@ export default class rn_pet extends Component {
                 {this._renderTabBarItem('creation', "录音", 'ios-recording-outline', 'ios-recording', Creation)}
                 {this._renderTabBarItem('edit', "我的", 'ios-more-outline', 'ios-more', Edit, "1")}
             </TabNavigator>
-
         )
     }
 
-    _renderTabBarItem(selectedTab, title, renderIcon, renderSelectedIcon, component, badgeText) {
+    _renderTabBarItem = (selectedTab, title, renderIcon, renderSelectedIcon, component, badgeText) => {
         return (
             <TabNavigator.Item
                 selected={this.state.selectedTab === selectedTab}
@@ -54,17 +99,17 @@ export default class rn_pet extends Component {
                     configureScene={(route, routeStack) => {
                         return Navigator.SceneConfigs.PushFromRight;
                     }}
-                    //route拿到路由!!route.component拿到的是initialRoute下的component
-                    //然后把component给渲染成组件并且return出去，并且把navigator设置成属性
                     renderScene={(route, navigator) => {
-                        return <route.component navigator={navigator}  {...route.passProps} />;
+                        //if(route.name == 'edit'){
+                            return <route.component navigator={navigator} logout={()=>this._logout()}  {...route.passProps} />;
+                        //}
+                        //return <route.component navigator={navigator}  {...route.passProps} />;
                     }}
                 />
             </TabNavigator.Item>
         )
     }
 }
-
 
 const styles = StyleSheet.create({
     tabView: {

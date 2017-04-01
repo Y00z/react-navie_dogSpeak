@@ -10,14 +10,17 @@ import {
     Text,
     View,
     Image,
-    Navigator
+    Navigator,
+    TouchableOpacity
 } from 'react-native';
 
 export default class Edit extends Component {
     render() {
         return (
             <View>
-                <Text>edit</Text>
+                <TouchableOpacity onPress={()=>this.props.logout()}>
+                    <Text>edit</Text>
+                </TouchableOpacity>
             </View>
         )
     }

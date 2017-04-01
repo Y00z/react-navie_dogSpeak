@@ -39,7 +39,7 @@ export default class Account extends Component {
             isRefreshing: false,     //是否正在刷新
             isLiek: false,
 
-            progress:0
+            progress: 0,
         }
     }
 
@@ -49,6 +49,7 @@ export default class Account extends Component {
     }
 
     render() {
+
         return (
             <View style={{backgroundColor: 'rgba(240,239,245,1.0)', flex: 1}}>
                 <View style={styles.accountTopStyles}>
@@ -223,7 +224,7 @@ export default class Account extends Component {
                     this.setState({
                         isLiek: !this.state.isLiek
                     })
-                }else{
+                } else {
                     alert("点赞错误");
                 }
             })
