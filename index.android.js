@@ -33,6 +33,7 @@ export default class rn_pet extends Component {
         }
     }
 
+    //把登录状况储存起来
     _afterLogin = (user) => {   //把user转换字符串储存起来
         AsyncStorage.setItem('user', JSON.stringify(user))
         this.setState({
@@ -41,6 +42,7 @@ export default class rn_pet extends Component {
         })
     }
 
+    //退出登录
     _logout = () => {
         AsyncStorage.removeItem('user')
         this.setState({
@@ -53,6 +55,7 @@ export default class rn_pet extends Component {
         this._asyncAppStatus()
     }
 
+    //检测是否已登录
     _asyncAppStatus = () => {
         AsyncStorage.getItem('user')
             .then((data) => {

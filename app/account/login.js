@@ -18,12 +18,12 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Button from 'react-native-button';
+import {CountDownText} from 'react-native-sk-countdown'
 var Dimensions = require("Dimensions");
 var {width, height} = Dimensions.get('window');
 var Mock = require('mockjs');
 var conf = require('./../common/conf');
 var Detail = require('./detail');
-
 
 export default class Login extends Component {
     constructor(props) {
@@ -31,8 +31,8 @@ export default class Login extends Component {
         this.state = {
             phontNumber: '',    //手机号
             codeSend: false,   //是否第一次已经发生验证码
-            verifyCode: ''         //验证码
-
+            verifyCode: '',        //验证码
+            isCountDown: false,    //是否正在倒计时。
         }
     }
 
@@ -77,13 +77,33 @@ export default class Login extends Component {
                                     }}
                                 />
 
-                                <Button
-                                    containerStyle={{width:width*0.35,padding:10,marginTop:15, borderRadius:4, backgroundColor: 'white',borderWidth:2,borderColor:'red'}}
-                                    style={{fontSize: 14, color: 'red'}}
-                                    onPress={()=>this._sendSMS()}>
-                                    重新获取验证码
-                                </Button>
+                                {   this.state.isCountDown
+                                    ?
+                                    <CountDownText
+                                        style={styles.cd}
+                                        countType='seconds' // 计时类型：seconds / date
+                                        auto={true} // 自动开始
+                                        afterEnd={() => this._end()} // 结束回调
+                                        timeLeft={10} // 正向计时 时间起点为0秒
+                                        step={-1} // 计时步长，以秒为单位，正数则为正计时，负数为倒计时
+                                        startText='获取验证码' // 开始的文本
+                                        endText='获取验证码' // 结束的文本
+                                        intervalText={(sec) => sec + '秒重新获取'} // 定时的文本回调
+                                    />
+                                    :
+                                    <Button
+                                        containerStyle={{
+                                        padding: 10,
+                                        marginTop: 12,
+                                        overflow: 'hidden',
+                                        borderRadius: 4,
+                                        backgroundColor: 'red'}}
+                                        style={{fontSize: 16, color: 'white'}}
+                                        onPress={()=>this._reSendSMS()}>
+                                        重新获取验证码
+                                    </Button>
 
+                                }
                             </View>
 
                             <Button
@@ -106,6 +126,25 @@ export default class Login extends Component {
         )
     }
 
+    //重新发送验证码
+    _reSendSMS = () => {
+        if (!this.state.isCountDown) {
+            this.setState({
+                isCountDown: true
+            })
+        }
+    }
+
+    //结束倒计时
+    _end = () => {
+        if (this.state.isCountDown) {
+            this.setState({
+                isCountDown: false
+            })
+        }
+        return;
+    }
+
     //登录
     _login = () => {
         if (this.state.phontNumber.length == 0)
@@ -115,7 +154,7 @@ export default class Login extends Component {
             return alert("验证码不能为空");
         fetch(conf.api.base + conf.api.login, {
             method: "POST",
-            body: "&phoneNumber=" + this.state.phontNumber+"&verifyCode="+this.state.verifyCode
+            body: "&phoneNumber=" + this.state.phontNumber + "&verifyCode=" + this.state.verifyCode
         })
             .then((response) => response.json())
             .then((response) => {
@@ -134,6 +173,9 @@ export default class Login extends Component {
 
     //发送验证码
     _sendSMS = () => {
+        if (this.state.isCountDown)
+            return alert("请稍后");
+
         if (this.state.phontNumber.length == 0)
             return alert("电话号码不能为空");
 
@@ -148,6 +190,7 @@ export default class Login extends Component {
                     if (!this.state.codeSend) {
                         this.setState({
                             codeSend: true,
+                            isCountDown: true
                         })
                     }
                 } else {
@@ -163,6 +206,15 @@ export default class Login extends Component {
 
 
 const styles = StyleSheet.create({
+    cd: {
+        fontSize: 18,
+        color: 'white',
+        padding: 10,
+        marginTop: 12,
+        overflow: 'hidden',
+        borderRadius: 4,
+        backgroundColor: 'red',
+    },
     inputverifyStyles: {
         width: width * 0.65,
         marginTop: 8,
