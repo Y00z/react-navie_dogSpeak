@@ -27,7 +27,7 @@ export default class rn_pet extends Component {
     constructor(props) {
         super(props)
         this.state = {
-            selectedTab: "account",
+            selectedTab: "edit",
             user: null,             //用户信息
             logined: false         //是否登录的。
         }
@@ -104,7 +104,7 @@ export default class rn_pet extends Component {
                     }}
                     renderScene={(route, navigator) => {
                         //if(route.name == 'edit'){
-                            return <route.component navigator={navigator} logout={()=>this._logout()}  {...route.passProps} />;
+                            return <route.component navigator={navigator} logout={()=>this._logout()} user={this.state.user}  {...route.passProps} />;
                         //}
                         //return <route.component navigator={navigator}  {...route.passProps} />;
                     }}
