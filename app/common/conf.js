@@ -5,9 +5,12 @@
 'use strict'
 
 module.exports = {
-    header: {
-        'Aceept': 'application/json',
-        'Content-Type': 'application/json'
+    header : {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
     },
     api: {
         base: 'http://rap.taobao.org/mockjs/15752/',
@@ -18,6 +21,7 @@ module.exports = {
         //-------------user-------------//
         verity : 'api/u/verify',        //获取验证码
         login:'api/u/login',            //登录
-
+        signature : 'api/u/signature',   //生成签名
+        update : 'api/u/update'         //用户资料更新
     }
 }
