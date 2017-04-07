@@ -13,13 +13,16 @@ import {
     Navigator,
     TouchableOpacity,
     ScrollView,
-    AsyncStorage
+    AsyncStorage,
+    Modal,
+    TextInput
 } from 'react-native';
 var Dimensions = require('Dimensions');
 var {width, height} =Dimensions.get('window')
 var conf = require('./../common/conf');
 import Icon from 'react-native-vector-icons/Ionicons';
 import  ImagePicker from 'react-native-image-picker';
+import Button from 'react-native-button';
 var sha1 = require('sha1');
 var Mock = require('mockjs');
 import * as Progress from 'react-native-progress';
@@ -66,7 +69,8 @@ export default class Edit extends Component {
             avatarSource: null,
             user: user,
             avatarProgress: 0,
-            avatarUploading: false         //头像是否正在上传
+            avatarUploading: false,         //头像是否正在上传
+            modalVisible: false            //modal是否显示
         }
     }
 
@@ -76,6 +80,9 @@ export default class Edit extends Component {
             <View style={{backgroundColor: 'rgba(240,239,245,1.0)', flex: 1}}>
                 <View style={styles.accountTopStyles}>
                     <Text style={styles.accountTopTextStyles}>狗狗的账户</Text>
+                    <TouchableOpacity style={styles.topRightedit} activeOpacity={0.8} onPress={()=>this._edit()}>
+                        <Text style={styles.accountTopTextStyles}>编辑</Text>
+                    </TouchableOpacity>
                 </View>
                 <ScrollView>
                     <View>
@@ -125,12 +132,132 @@ export default class Edit extends Component {
                                 </View>
                         }
                     </View>
-                    <TouchableOpacity onPress={()=>this.props.logout()}>
-                        <Text>edit</Text>
-                    </TouchableOpacity>
+                    <Button
+                        containerStyle={{padding:10,marginTop:20,marginLeft:20,marginRight:20, borderRadius:4, backgroundColor: 'white',borderWidth:2,borderColor:'red'}}
+                        style={{fontSize: 20, color: 'red'}}
+                        onPress={()=>this.props.logout()}>
+                        退出登录
+                    </Button>
                 </ScrollView>
+                <Modal
+                    animationType={"slide"}         //modal弹出的动画
+                    visible={this.state.modalVisible}       //是否可见
+                    onRequestClose={()=>this._onRequestClose()}           //关闭的时候调用
+                >
+                    <View>
+                        <TouchableOpacity style={styles.closeModal} onPress={()=>this._closeModal()}>
+                            <Icon size={50} name="ios-close-outline"/>
+                        </TouchableOpacity>
+                        <View style={{flexDirection: 'column',marginTop:80}}>
+                            <View style={{flexDirection: 'row',alignItems: 'center',marginTop:20}}>
+                                <Text style={{marginLeft:20}}>名称:</Text>
+                                <TextInput
+                                    placeholder="输入你的名称"
+                                    style={styles.textInput}
+                                    underlineColorAndroid="transparent"
+                                    defaultValue={this.state.user.nikename}
+                                    autoCapitalize={'none'}
+                                    autoCorrect={false}
+                                    onChangeText={(text)=>this._changeUserStatu('nikename',text)}
+                                />
+                            </View>
+
+                            <View style={{flexDirection: 'row',alignItems: 'center',marginTop:20}}>
+                                <Text style={{marginLeft:20}}>品种:</Text>
+                                <TextInput
+                                    placeholder="输入你的品种"
+                                    style={styles.textInput}
+                                    underlineColorAndroid="transparent"
+                                    defaultValue={this.state.user.breed}
+                                    autoCapitalize={'none'}
+                                    autoCorrect={false}
+                                    onChangeText={(text)=>this._changeUserStatu('breed',text)}
+                                />
+                            </View>
+
+                            <View style={{flexDirection: 'row',alignItems: 'center',marginTop:20}}>
+                                <Text style={{marginLeft:20}}>年龄:</Text>
+                                <TextInput
+                                    placeholder="输入你的年龄"
+                                    style={styles.textInput}
+                                    underlineColorAndroid="transparent"
+                                    defaultValue={this.state.user.age}
+                                    autoCapitalize={'none'}
+                                    autoCorrect={false}
+                                    onChangeText={(text)=>this._changeUserStatu('age',text)}
+                                />
+                            </View>
+
+                            <View
+                                style={{flexDirection: 'row',alignItems: 'center',marginTop:20,justifyContent:'space-between',paddingRight:80}}>
+                                <Text style={{marginLeft:20}}>性别:</Text>
+                                <Icon.Button
+                                    //默认gender布局，如果user.gender == 'male' 就切换genderChecked布局
+                                    style={[styles.gender , user.gender == 'male'&& styles.genderChecked]}
+                                    name="ios-person"
+                                    onPress={()=>this._changeUserStatu('gender','male')}
+                                >
+                                    男
+                                </Icon.Button>
+
+                                <Icon.Button
+                                    style={[styles.gender , user.gender == 'female'&& styles.genderChecked]}
+                                    name="ios-person-outline"
+                                    onPress={()=>this._changeUserStatu('gender','female')}
+                                >
+                                    女
+                                </Icon.Button>
+                            </View>
+
+
+                            <View style={{flexDirection: 'row',marginTop:20,justifyContent:'center'}}>
+                                <Button
+                                    containerStyle={{padding:10,marginTop:20, borderRadius:4, backgroundColor: 'white',borderWidth:2,borderColor:'red'}}
+                                    style={{fontSize: 20, color: 'red'}}
+                                    onPress={()=>this._save()}>
+                                    保存修改
+                                </Button>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
             </View>
         )
+    }
+
+    _save = () => {
+        this._asyncUser()
+    }
+
+    //修改后保存
+    _changeUserStatu = (key, value) => {
+        var user = this.state.user
+        user[key] = value
+        this.setState({
+            user: user
+        })
+    }
+
+    _onRequestClose = () => {
+
+    }
+
+    //关闭modal
+    _closeModal = () => {
+        if (this.state.modalVisible) {
+            this.setState({
+                modalVisible: false
+            })
+        }
+    }
+
+    //编辑
+    _edit = () => {
+        if (!this.state.modalVisible) {
+            this.setState({
+                modalVisible: true
+            })
+        }
     }
 
     //把更新后的用户数据发送给服务器同步起来
@@ -151,6 +278,7 @@ export default class Edit extends Component {
                     this.setState({
                         user: user
                     }, function () {
+                        this._closeModal()
                         AsyncStorage.setItem('user', JSON.stringify(user))
                     })
                 })
@@ -260,6 +388,30 @@ export default class Edit extends Component {
 
 
 const styles = StyleSheet.create({
+    gender: {
+        backgroundColor: '#ccc',
+    },
+    genderChecked: {
+        backgroundColor: '#ee735c',
+    },
+    textInput: {
+        width: width * 0.7,
+        height: 40,
+        borderWidth: 1,
+        borderRadius: 3,
+        borderColor: '#ccc',
+        marginLeft: 20,
+    },
+    closeModal: {
+        position: 'absolute',
+        top: 20,
+        right: 80
+    },
+    topRightedit: {
+        position: 'absolute',
+        right: 15,
+        top: 8
+    },
     radiusIMG: {
         width: 70,
         height: 70,

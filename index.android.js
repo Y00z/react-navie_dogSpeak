@@ -46,6 +46,7 @@ export default class rn_pet extends Component {
     _logout = () => {
         AsyncStorage.removeItem('user')
         this.setState({
+            logined:false,
             user: null,
             logined: false
         })
