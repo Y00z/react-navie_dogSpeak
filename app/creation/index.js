@@ -12,12 +12,16 @@ import {
     Image,
     Navigator
 } from 'react-native';
+var Dimensions = require('Dimensions');
+var {width, height} = Dimensions.get('window')
 
 export default class Creation extends Component {
     render() {
         return (
-            <View>
-                <Text>Creation</Text>
+            <View style={{backgroundColor: 'rgba(240,239,245,1.0)', flex: 1}}>
+                <View style={styles.creattionTopStyles}>
+                    <Text style={styles.creattionTopTextStyles}>理解狗狗,从配音开始</Text>
+                </View>
             </View>
         )
     }
@@ -25,22 +29,16 @@ export default class Creation extends Component {
 
 
 const styles = StyleSheet.create({
-    tabView: {
-        flex: 1,
-        padding: 10,
-        backgroundColor: 'rgba(0,0,0,0.01)',
+    creattionTopTextStyles: {
+        fontSize: 18,
+        color: 'white'
     },
-    card: {
-        borderWidth: 1,
-        backgroundColor: '#fff',
-        borderColor: 'rgba(0,0,0,0.1)',
-        margin: 5,
-        height: 150,
-        padding: 15,
-        shadowColor: '#ccc',
-        shadowOffset: {width: 2, height: 2,},
-        shadowOpacity: 0.5,
-        shadowRadius: 3,
+    creattionTopStyles: {
+        backgroundColor: 'orange',
+        width: width,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
 });
 module.exports = Creation;

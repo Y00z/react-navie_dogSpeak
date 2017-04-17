@@ -24,12 +24,13 @@ var {width, height} = Dimensions.get('window');
 var Mock = require('mockjs');
 var conf = require('./../common/conf');
 var Detail = require('./detail');
+import request from '../common/request'
 
 export default class Login extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            phontNumber: '',    //手机号
+            phoneNumber: '',    //手机号
             codeSend: false,   //是否第一次已经发生验证码
             verifyCode: '',        //验证码
             isCountDown: false,    //是否正在倒计时。
@@ -50,10 +51,10 @@ export default class Login extends Component {
                     underlineColorAndroid="transparent"   //去掉底边框
                     style={styles.textInput}
                     multiline={false}            //是否可以输入多行文字
-                    defaultValue={this.state.phontNumber}
+                    defaultValue={this.state.phoneNumber}
                     onChangeText={(text)=>{
                                 this.setState({
-                                    phontNumber:text
+                                    phoneNumber:text
                                 })
                             }}
                 />
@@ -147,20 +148,23 @@ export default class Login extends Component {
 
     //登录
     _login = () => {
-        if (this.state.phontNumber.length == 0)
+        if (this.state.phoneNumber.length == 0)
             return alert("电话号码不能为空");
 
         if (this.state.verifyCode.length == 0)
             return alert("验证码不能为空");
-        fetch(conf.api.base + conf.api.login, {
-            method: "POST",
-            body: "&phoneNumber=" + this.state.phontNumber + "&verifyCode=" + this.state.verifyCode
+        // fetch(conf.api.base + conf.api.login, {
+        //     method: "POST",
+        //     body: "&phoneNumber=" + this.state.phoneNumber + "&verifyCode=" + this.state.verifyCode
+        // })
+        request.post(conf.api.base + conf.api.login,{
+            phoneNumber : this.state.phoneNumber,
+            verifyCode : this.state.verifyCode
         })
-            .then((response) => response.json())
+            // .then((response) => response.json())
             .then((response) => {
-                var data = Mock.mock(response)
-                if (data && data.success) {
-                    this.props.afterLogin(data.data)
+                if (response && response.success) {
+                    this.props.afterLogin(response.data)
                 } else {
                     alert("登录失败");
                 }
@@ -176,17 +180,19 @@ export default class Login extends Component {
         if (this.state.isCountDown)
             return alert("请稍后");
 
-        if (this.state.phontNumber.length == 0)
+        if (this.state.phoneNumber.length == 0)
             return alert("电话号码不能为空");
 
-        fetch(conf.api.base + conf.api.verity, {
-            method: "POST",
-            body: "&phoneNumber=" + this.state.phontNumber
+        // fetch(conf.api.base + conf.api.verity, {
+        //     method: 'POST',
+        //     body: "phoneNumber=" + this.state.phoneNumber
+        // })
+        request.post(conf.api.base + conf.api.getVerityCode,{
+            phoneNumber : this.state.phoneNumber
         })
-            .then((response) => response.json())
             .then((response) => {
-                var data = Mock.mock(response)
-                if (data && data.success) {
+                alert(JSON.stringify(response))
+                if (response && response.success) {
                     if (!this.state.codeSend) {
                         this.setState({
                             codeSend: true,
@@ -194,7 +200,7 @@ export default class Login extends Component {
                         })
                     }
                 } else {
-                    alert("验证码获取失败");
+                    // alert("验证码获取失败");
                 }
             })
             .catch((error) => {

@@ -5,7 +5,7 @@
 'use strict'
 
 module.exports = {
-    header : {
+    header: {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
@@ -13,15 +13,28 @@ module.exports = {
         }
     },
     api: {
-        base: 'http://rap.taobao.org/mockjs/15752/',
+        //base: 'http://rap.taobao.org/mockjs/15752/',
+        base:'http://192.168.0.12:3000/',
         index: 'init',                  //首页
         liek: 'liek',                   //点赞
         comments: 'pinglun',            //评论
         sendComments: 'submit',         //发送评论
         //-------------user-------------//
-        verity : 'api/u/verify',        //获取验证码
-        login:'api/u/login',            //登录
-        signature : 'api/u/signature',   //生成签名
-        update : 'api/u/update'         //用户资料更新
+        login: 'api/u/verify',        //验证(登录)
+        getVerityCode: 'api/u/signup',            //登录(获取验证码)
+        signature: 'api/signature',   //生成签名
+        update: 'api/u/update'         //用户资料更新
+    },
+    cloudinary: {
+        cloud_name: 'deq99znbe',
+        api_key: '132214329484465',
+        api_secret: 'Lz3pLZyJ0ahd-C-5s7fbob8NGS0',
+        base: 'http://res.cloudinary.com/deq99znbe',
+        image: 'https://api.cloudinary.com/v1_1/deq99znbe/image/upload',
+        video: 'https://api.cloudinary.com/v1_1/deq99znbe/video/upload',
+        audio: 'https://api.cloudinary.com/v1_1/deq99znbe/audio/upload',
+    },
+    qiniu:{
+        upload: 'http://upload.qiniu.com'
     }
 }

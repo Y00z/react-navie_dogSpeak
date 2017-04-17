@@ -17,26 +17,18 @@ import {
     Modal,
     TextInput
 } from 'react-native';
-var Dimensions = require('Dimensions');
+import Icon from 'react-native-vector-icons/Ionicons'
+import  ImagePicker from 'react-native-image-picker'
+import Button from 'react-native-button'
+import * as Progress from 'react-native-progress'
+var Dimensions = require('Dimensions')
 var {width, height} =Dimensions.get('window')
-var conf = require('./../common/conf');
-import Icon from 'react-native-vector-icons/Ionicons';
-import  ImagePicker from 'react-native-image-picker';
-import Button from 'react-native-button';
-var sha1 = require('sha1');
-var Mock = require('mockjs');
-import * as Progress from 'react-native-progress';
+var conf = require('./../common/conf')
+var sha1 = require('sha1')
+var Mock = require('mockjs')
 var _ = require('lodash')
+import request from '../common/request'
 
-var CLOUDINARY = {
-    cloud_name: 'deq99znbe',
-    api_key: '132214329484465',
-    api_secret: 'Lz3pLZyJ0ahd-C-5s7fbob8NGS0',
-    base: 'http://res.cloudinary.com/deq99znbe',
-    image: 'https://api.cloudinary.com/v1_1/deq99znbe/image/upload',
-    video: 'https://api.cloudinary.com/v1_1/deq99znbe/video/upload',
-    audio: 'https://api.cloudinary.com/v1_1/deq99znbe/audio/upload',
-}
 
 var photoOptions = {
     title: '选择头像',
@@ -57,7 +49,10 @@ function avatar(id, type) {
         return id
     if (id.indexOf("data:image") > -1)
         return id
-    return CLOUDINARY.base + "/" + type + "/upload/" + id
+    if (id.indexOf("avatar") > -1)
+        return conf.cloudinary.base + "/" + type + "/upload/" + id
+
+    return 'http://oi6ni1o6u.bkt.clouddn.com/' + id
 }
 
 export default class Edit extends Component {
@@ -75,7 +70,7 @@ export default class Edit extends Component {
     }
 
     render() {
-        var user = this.state.user;
+        var user = this.state.user
         return (
             <View style={{backgroundColor: 'rgba(240,239,245,1.0)', flex: 1}}>
                 <View style={styles.accountTopStyles}>
@@ -267,7 +262,7 @@ export default class Edit extends Component {
             var url = conf.api.base + conf.api.update
             var options = _.extend(conf.header, {
                 body: JSON.stringify(user)
-            });
+            })
             fetch(url, options)
                 .then((response) => response.json())
                 .then((response) => {
@@ -285,50 +280,77 @@ export default class Edit extends Component {
         }
     }
 
+    getQiniuToken = () => {
+        var accessToken = this.state.user.accessToken
+        var signatureURL = conf.api.base + conf.api.signature
+        return request.post(signatureURL, {
+            accessToken: accessToken,
+            cloud: 'qiniu'
+        })
+    }
+
     _pickerIMG = () => {
         ImagePicker.showImagePicker(photoOptions, (response) => {
-            console.log('Response = ', response);
+            console.log('Response = ', response)
             if (response.didCancel) {
                 return
             }
             //把选择的图片转换成base64，然后存储到user对象。
             var avartarData = 'data:image/jpeg;base64,' + response.data
+            var uri = response.uri
             //把图片上传到Cloudinary图床
-            var timestamp = Date.now()
-            var tags = 'app,avatar'     //图片标签
-            var folder = 'avatar'       //图床文件夹
-            var accessToken = this.state.user.accessToken
-            var signatureURL = conf.api.base + conf.api.signature
-            fetch(signatureURL, {
-                method: "POST",
-                body: "&accessToken=" + accessToken + "&timestamp=" + timestamp + "&type=avatar"
-            })
-                .then((response) => response.json())
-                .then((response) => {
-                    var data = Mock.mock(response)
+            // var timestamp = Date.now()
+            // var tags = 'app,avatar'     //图片标签
+            // var folder = 'avatar'       //图床文件夹
+            this.getQiniuToken()
+                .then((data) => {
                     if (data && data.success) {
-                        var signature = 'folder=' + folder + "&tags=" + tags +
-                            '&timestamp=' + timestamp + CLOUDINARY.api_secret
-                        signature = sha1(signature)
+                        var token = data.data.token
+                        var key = data.data.key
                         //构建上传的表单。
                         var body = new FormData()
-                        body.append('folder', folder)
-                        body.append('signature', signature)
-                        body.append('tags', tags)
-                        body.append('timestamp', timestamp)
-                        body.append('api_key', CLOUDINARY.api_key)
-                        body.append('resource_type', 'image')
-                        body.append('file', avartarData)
+                        body.append('token', token)
+                        body.append('key',key)
+                        body.append('file', {
+                            type: 'image/jpeg',
+                            uri: uri,
+                            name: key
+                        })
                         this._upload(body)
                     }
                 })
+
+            // fetch(signatureURL, {
+            //     method: "POST",
+            //     body: "&accessToken=" + accessToken + "&timestamp=" + timestamp + "&type=avatar"
+            // })
+            //     .then((response) => response.json())
+            //     .then((response) => {
+            //         var data = Mock.mock(response)
+            //         if (data && data.success) {
+            //             // var signature = 'folder=' + folder + "&tags=" + tags +
+            //             //     '&timestamp=' + timestamp + conf.cloudinary.api_secret
+            //             // signature = sha1(signature)
+            //             signature = data.data
+            //             //构建上传的表单。
+            //             var body = new FormData()
+            //             body.append('folder', folder)
+            //             body.append('signature', signature)
+            //             body.append('tags', tags)
+            //             body.append('timestamp', timestamp)
+            //             body.append('api_key', conf.cloudinary.api_key)
+            //             body.append('resource_type', 'image')
+            //             body.append('file', avartarData)
+            //             this._upload(body)
+            //         }
+            //     })
         })
     }
 
     //发送异步请求
     _upload = (body) => {
         var xhr = new XMLHttpRequest()
-        var url = CLOUDINARY.image
+        var url = conf.qiniu.upload
         this.setState({
             avatarUploading: true,
             avatarProgress: 0
@@ -336,11 +358,11 @@ export default class Edit extends Component {
         xhr.open('POST', url)
         xhr.onload = () => {
             if (xhr.status !== 200) {
-                alert("请求失败");
+                alert("请求失败")
                 return
             }
             if (!xhr) {
-                alert("请求超时");
+                alert("请求超时")
                 return
             }
 
@@ -353,9 +375,13 @@ export default class Edit extends Component {
                 console.log(e)
             }
             //成功后，把头像地址替换成图床的地址
-            if (response && response.public_id) {
+            if (response) {
                 var user = this.state.user
-                user.avatar = response.public_id
+                //如果有public_id 说明用的是cloudinary图床
+                if (response.public_id)
+                    user.avatar = response.public_id
+                if (response.key)   //如果有key,说明用的是七牛图床
+                    user.avatar = response.key
                 this.setState({
                     user: user,
                     avatarUploading: false,
