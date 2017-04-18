@@ -285,7 +285,8 @@ export default class Edit extends Component {
         var signatureURL = conf.api.base + conf.api.signature
         return request.post(signatureURL, {
             accessToken: accessToken,
-            cloud: 'qiniu'
+            cloud: 'qiniu',
+            type : 'avatar'
         })
     }
 

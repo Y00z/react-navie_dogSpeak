@@ -27,7 +27,7 @@ export default class rn_pet extends Component {
     constructor(props) {
         super(props)
         this.state = {
-            selectedTab: "edit",
+            selectedTab: "creation",
             user: null,             //用户信息
             logined: false         //是否登录的。
         }
