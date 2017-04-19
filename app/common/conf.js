@@ -23,7 +23,8 @@ module.exports = {
         login: 'api/u/verify',        //验证(登录)
         getVerityCode: 'api/u/signup',            //登录(获取验证码)
         signature: 'api/signature',   //生成签名
-        update: 'api/u/update'         //用户资料更新
+        update: 'api/u/update',         //用户资料更新
+        video : 'api/u/video',          //上传视频信息到服务器
     },
     cloudinary: {
         cloud_name: 'deq99znbe',

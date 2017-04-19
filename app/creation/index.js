@@ -65,10 +65,11 @@ export default class Creation extends Component {
                     <Text style={styles.creattionTopTextStyles}>理解狗狗,从配音开始</Text>
                     {
                         this.state.previewVideo && this.state.videoUploaded
-                        ? <TouchableOpacity style={styles.creattionTopRightStyles} onPress={()=>this._pickerVideo()}>
-                            <Text style={styles.creattionTopRightTextStyles}>更换视频</Text>
-                        </TouchableOpacity>
-                        : null
+                            ?
+                            <TouchableOpacity style={styles.creattionTopRightStyles} onPress={()=>this._pickerVideo()}>
+                                <Text style={styles.creattionTopRightTextStyles}>更换视频</Text>
+                            </TouchableOpacity>
+                            : null
                     }
                 </View>
                 {
@@ -110,14 +111,6 @@ export default class Creation extends Component {
                                 }
                             </TouchableOpacity>
 
-                            {
-                                this.state.paused ?
-                                    <TouchableOpacity activeOpacity={0.5} style={styles.playBox}
-                                                      onPress={()=>this._resume()}>
-                                        <Icon style={styles.play} size={60}
-                                              name="ios-play"/>
-                                    </TouchableOpacity> : null
-                            }
                         </View>
                         :
                         <TouchableOpacity onPress={()=>this._pickerVideo()}>
@@ -156,7 +149,6 @@ export default class Creation extends Component {
             var timestamp = Date.now()
             var tags = 'app,avatar'     //图片标签
             var folder = 'avatar'       //图床文件夹
-            console.log("11")
             this.getQiniuToken()
                 .then((data) => {
                     if (data && data.success) {
@@ -174,31 +166,6 @@ export default class Creation extends Component {
                         this._upload(body)
                     }
                 })
-
-            // fetch(signatureURL, {
-            //     method: "POST",
-            //     body: "&accessToken=" + accessToken + "&timestamp=" + timestamp + "&type=avatar"
-            // })
-            //     .then((response) => response.json())
-            //     .then((response) => {
-            //         var data = Mock.mock(response)
-            //         if (data && data.success) {
-            //             // var signature = 'folder=' + folder + "&tags=" + tags +
-            //             //     '&timestamp=' + timestamp + conf.cloudinary.api_secret
-            //             // signature = sha1(signature)
-            //             signature = data.data
-            //             //构建上传的表单。
-            //             var body = new FormData()
-            //             body.append('folder', folder)
-            //             body.append('signature', signature)
-            //             body.append('tags', tags)
-            //             body.append('timestamp', timestamp)
-            //             body.append('api_key', conf.cloudinary.api_key)
-            //             body.append('resource_type', 'image')
-            //             body.append('file', avartarData)
-            //             this._upload(body)
-            //         }
-            //     })
         })
     }
 
@@ -206,7 +173,6 @@ export default class Creation extends Component {
     _upload = (body) => {
         var xhr = new XMLHttpRequest()
         var url = conf.qiniu.upload
-        console.log(body)
         this.setState({
             videoUploading: true,
             videoUploadProgress: 0,
@@ -231,24 +197,36 @@ export default class Creation extends Component {
             } catch (e) {
                 console.log(e)
             }
-            console.log(response)
             //成功后，把头像地址替换成图床的地址
             if (response) {
-                // var user = this.state.user
-                // //如果有public_id 说明用的是cloudinary图床
-                // if (response.public_id)
-                //     user.avatar = response.public_id
-                // if (response.key)   //如果有key,说明用的是七牛图床
-                //     user.avatar = response.key
                 this.setState({
                     video: response,
                     videoUploading: false,
                     videoUploadProgress: 0,
                     videoUploaded: true
                 })
+
+                //上传视频到服务器进行同步
+                var accessToken = this.state.user.accessToken
+                var videoUrl = conf.api.base + conf.api.video
+                request.post(videoUrl, {
+                    accessToken: accessToken,
+                    video: response
+                })
+                    .then((data) => {
+                        if (!data || !data.success) {
+                            console.log(error)
+                            alert("视频同步出错，请重新上传")
+                        }
+                    })
+                    .catch((error) => {
+                        console.log(error)
+                        alert("服务器出错,请重新上传")
+                    })
+
             }
         }
-        //获取头像上传进度。
+        //获取上传进度。
         if (xhr.upload) {
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
@@ -337,21 +315,6 @@ const styles = StyleSheet.create({
         height: 3,
         backgroundColor: 'red'
 
-    },
-    playBox: {
-        position: 'absolute',
-        bottom: 130,
-        right: 150,
-        width: 70,
-        height: 70,
-    },
-    play: {
-        borderRadius: 35,
-        borderColor: 'white',
-        borderWidth: 1,
-        color: 'orange',
-        paddingTop: 3,
-        paddingLeft: 25,
     },
     middleStyle: {
         width: width * 0.95,

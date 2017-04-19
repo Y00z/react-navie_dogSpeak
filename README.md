@@ -24,6 +24,3 @@ var countDown = require('./countDown')
 
 并且安装react-addons-update
 npm install react-addons-update --save
-
-
-妈了个巴子，注意options里面的参数千万别写错了。

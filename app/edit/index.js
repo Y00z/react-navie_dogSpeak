@@ -366,7 +366,6 @@ export default class Edit extends Component {
                 alert("请求超时")
                 return
             }
-
             //上传成功后
             var response
             try {
@@ -402,10 +401,7 @@ export default class Edit extends Component {
                 }
             }
         }
-
         xhr.send(body)
-
-
     }
 
     componentDidMount() {
