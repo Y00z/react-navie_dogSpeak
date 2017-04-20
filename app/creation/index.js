@@ -13,6 +13,7 @@ import {
     Navigator,
     TouchableOpacity,
 } from 'react-native';
+import {CountDownText} from 'react-native-sk-countdown'
 import ImagePicker from 'react-native-image-picker'
 import Icon from 'react-native-vector-icons/Ionicons';
 var Video = require('react-native-video').default;
@@ -44,6 +45,8 @@ export default class Creation extends Component {
             user: user,
             previewVideo: null,
             //视频播放
+            currentTime: 0, //当前播放进度
+            totalTime:0,                //视频总长度
             progress: 0.01,             //转换后的当前进度。
             paused: false,              //是否正在播放，false为暂停。
             isEnding: false,            //是否播放完毕
@@ -53,8 +56,16 @@ export default class Creation extends Component {
             //视频上传
             videoUploading: true,       //视频是否正在上传
             videoUploadProgress: 0.1,   //视频上传进度
-            videoUploaded: true,        //是否上传结束
-            video: null
+            videoUploaded: false,        //是否上传结束
+            video: null,
+
+            //倒计时
+            countdowning: false,         //倒计时中
+            counted: false,                //倒计时结束
+
+            //录音
+            recording: false,           //录音中
+            record: false,              //是否录音完毕。
         }
     }
 
@@ -109,7 +120,57 @@ export default class Creation extends Component {
                                         :
                                         null
                                 }
+
+
+                                {
+                                    this.state.videoUploaded && this.state.counted
+                                        ?
+                                            <View style={styles.progressBox}>
+                                                <View
+                                                    style={[styles.progressBar,{width:width * this.state.progress}]}>
+                                                </View>
+                                            </View>
+                                        :
+                                        null
+                                }
+
+
+                                {
+                                    this.state.videoUploaded
+                                        ?
+                                        <View style={{flexDirection:'row',justifyContent:'center',marginTop:-20}}>
+                                            <View
+                                                style={[styles.record,this.state.recording && styles.recordOutline ]}>
+                                                {
+                                                    this.state.countdowning
+                                                        ? <CountDownText
+                                                            style={styles.cd}
+                                                            countType='seconds' // 计时类型：seconds / date
+                                                            auto={true} // 自动开始
+                                                            afterEnd={() => this._end()} // 结束回调
+                                                            timeLeft={3} // 正向计时 时间起点为0秒
+                                                            step={-1} // 计时步长，以秒为单位，正数则为正计时，负数为倒计时
+                                                            startText='' // 开始的文本
+                                                            endText='Go' // 结束的文本
+                                                            intervalText={(sec) => sec + ''}/> // 定时的文本回调
+                                                        :
+                                                        <TouchableOpacity onPress={()=>this.__counting()}
+                                                                          style={{width:50,height:50}}>
+                                                            <Icon name="ios-mic" size={50}
+                                                                  style={{width:50,height:50,color:'white',textAlign: 'center'}}/>
+                                                        </TouchableOpacity>
+                                                }
+                                            </View>
+                                        </View>
+                                        : null
+                                }
                             </TouchableOpacity>
+                            {
+                                this.state.recording
+                                    ?
+                                    <View style={{flexDirection:'row',justifyContent:'center',marginTop:8}}><Text>录制声音中</Text></View>
+                                    : null
+                            }
 
                         </View>
                         :
@@ -240,9 +301,29 @@ export default class Creation extends Component {
         xhr.send(body)
     }
 
+    _end = () => {
+        this.setState({
+            counted: true,
+            countdowning: false,
+            paused: false,
+            recording: true,
+            record: false,
+        })
+        this.refs.videoPlayer.seek(0)
+        // this._rePlay()
+    }
+
+    __counting = () => {
+        this.setState({
+            countdowning: true
+        })
+    }
 
     _rePlay = () => {
         this.refs.videoPlayer.seek(0)
+        this.setState({
+            paused: false
+        })
     }
 
     _paused = () => {
@@ -273,29 +354,31 @@ export default class Creation extends Component {
     }
 
     _onLoad = (data) => {
-        // var totalTime = data.duration
+        var totalTime = data.duration
+        this.setState({
+            totalTime: totalTime,    //视频加载完毕，设置视频总长度
+        })
     }
 
     _onProgress = (data) => {
         // var currentTime = Number(data.currentTime.toFixed(2))
-        // var currentTime = data.currentTime
-        // var playableDuration = data.playableDuration
+        var currentTime = data.currentTime
+        var playableDuration = data.playableDuration
         //比例数，整数，
-        // var percent = Number((currentTime / this.state.totalTime).toFixed(2));
+        var percent = Number((currentTime / this.state.totalTime).toFixed(2));
         // alert(JSON.stringify(data));
         // alert(playableDuration);
-        // var percent = currentTime / this.state.totalTime;
-        // this.setState({
-        //     totalTime: playableDuration,    //视频加载完毕，设置视频总长度
-        //     currentTime: currentTime,
-        //     isLoading: false,
-        //     isEnding: false
-        // })
+        var percent = currentTime / this.state.totalTime;
+        this.setState({
+            currentTime: currentTime,
+            progress: percent,
+        })
     }
 
     _onEnd = () => {
         this.setState({
             paused: true,
+            recording: false,
         })
     }
 
@@ -306,10 +389,31 @@ export default class Creation extends Component {
 
 
 const styles = StyleSheet.create({
+    recordOutline: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'gray',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    record: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'orange',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    cd: {
+        color: 'white',
+        textAlign: 'center',
+        fontSize: 28
+    },
     progressBox: {
         width: width,
         height: 3,
-        backgroundColor: '#ccc'
+        backgroundColor: '#ccc',
     },
     progressBar: {
         height: 3,

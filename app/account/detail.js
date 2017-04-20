@@ -38,7 +38,7 @@ export default class detail extends Component {
                 rowHasChanged: (r1, r2) => r1 !== r2
             }),
             progress: 0.01,  //转换后的当前进度。
-            cuttentTime: 0, //当前播放进度
+            currentTime: 0, //当前播放进度
             totalTime: 0,    //总共播放进度
             isLoading: true,  //是否正在加载
             paused: false,     //是否正在播放，false为暂停。
