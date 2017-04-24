@@ -12,12 +12,17 @@ import {
     Image,
     Navigator,
     TouchableOpacity,
+    AsyncStorage,
+    Platform,
+    PermissionsAndroid
 } from 'react-native';
 import {CountDownText} from 'react-native-sk-countdown'
 import ImagePicker from 'react-native-image-picker'
-import Icon from 'react-native-vector-icons/Ionicons';
-var Video = require('react-native-video').default;
-var Dimensions = require('Dimensions');
+import Icon from 'react-native-vector-icons/Ionicons'
+import {AudioRecorder, AudioUtils} from 'react-native-audio'
+import Sound from 'react-native-sound';
+var Video = require('react-native-video').default
+var Dimensions = require('Dimensions')
 var {width, height} = Dimensions.get('window')
 var request = require('./../common/request')
 var conf = require('./../common/conf')
@@ -43,10 +48,10 @@ export default class Creation extends Component {
         var user = this.props.user || {}
         this.state = {
             user: user,
-            previewVideo: null,
+            previewVideo: null,         //存放视频地址
             //视频播放
             currentTime: 0, //当前播放进度
-            totalTime:0,                //视频总长度
+            totalTime: 0,                //视频总长度
             progress: 0.01,             //转换后的当前进度。
             paused: false,              //是否正在播放，false为暂停。
             isEnding: false,            //是否播放完毕
@@ -55,7 +60,7 @@ export default class Creation extends Component {
 
             //视频上传
             videoUploading: true,       //视频是否正在上传
-            videoUploadProgress: 0.1,   //视频上传进度
+            videoUploadProgress: 0.0,   //视频上传进度
             videoUploaded: false,        //是否上传结束
             video: null,
 
@@ -66,18 +71,25 @@ export default class Creation extends Component {
             //录音
             recording: false,           //录音中
             record: false,              //是否录音完毕。
+            audioPath: AudioUtils.DocumentDirectoryPath + '//dog.aac', //录音的路径
+            finished: false,
+            audioPlaying: false,        //录音是否正在播放
+            recordTime: 0.0,            //录音时间
+
+            hasPermission: undefined,
         }
     }
 
     render() {
         return (
-            <View style={{backgroundColor: 'rgba(240,239,245,1.0)', flex: 1,alignItems: 'center'}}>
+            <View style={{backgroundColor: 'rgba(240,239,245,1.0)', flex: 1, alignItems: 'center'}}>
                 <View style={styles.creattionTopStyles}>
                     <Text style={styles.creattionTopTextStyles}>理解狗狗,从配音开始</Text>
                     {
                         this.state.previewVideo && this.state.videoUploaded
                             ?
-                            <TouchableOpacity style={styles.creattionTopRightStyles} onPress={()=>this._pickerVideo()}>
+                            <TouchableOpacity style={styles.creattionTopRightStyles}
+                                              onPress={() => this._pickerVideo()}>
                                 <Text style={styles.creattionTopRightTextStyles}>更换视频</Text>
                             </TouchableOpacity>
                             : null
@@ -86,8 +98,8 @@ export default class Creation extends Component {
                 {
                     this.state.previewVideo
                         ?
-                        <View style={{width: width,height: 300}}>
-                            <TouchableOpacity activeOpacity={0.9} onPress={()=>this._paused()}>
+                        <View style={{width: width, height: 300}}>
+                            <TouchableOpacity activeOpacity={0.9} onPress={() => this._paused()}>
                                 <Video
                                     ref="videoPlayer"
                                     source={{uri: this.state.previewVideo}}
@@ -99,20 +111,44 @@ export default class Creation extends Component {
                                     resizeMode='cover'  //视频拉伸方式， contain：包含
                                     playInBackground={false}     // 当app转到后台运行的时候，播放是否暂停
                                     playWhenInactive={false}     // [iOS] Video continues to play when control or notification center are shown. 仅适用于IOS
-                                    style={{width:width , height:300}}
-                                    onLoadStart={()=>this._onLoadStart()}      //当视频开始加载时的回调函数
-                                    onLoad={(data)=>this._onLoad(data)}           //当视频加载完毕时的回调函数
-                                    onProgress={(data)=>this._onProgress(data)}       //播放中每250毫秒调用一次
-                                    onEnd={()=>this._onEnd()}            //播放结束的时候调用
-                                    onError={()=>this._onError()}          //播放出错调用
+                                    style={{width: width, height: 300}}
+                                    onLoadStart={() => this._onLoadStart()}      //当视频开始加载时的回调函数
+                                    onLoad={(data) => this._onLoad(data)}           //当视频加载完毕时的回调函数
+                                    onProgress={(data) => this._onProgress(data)}       //播放中每250毫秒调用一次
+                                    onEnd={() => this._onEnd()}            //播放结束的时候调用
+                                    onError={() => this._onError()}          //播放出错调用
                                 />
-                                {
+
+                                {   //录音完毕后，预览
+                                    this.state.record
+                                        ?
+                                        <TouchableOpacity style={{position: 'absolute', right: 20, top: 239,}}
+                                                          onPress={() => this._preview()}>
+                                            <View
+                                                style={{
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    borderRadius: 8,
+                                                    borderWidth: 1,
+                                                    borderColor: 'red',
+                                                    flexDirection: 'row',
+                                                    paddingLeft: 5,
+                                                    paddingRight: 5
+                                                }}>
+                                                <Icon name="ios-play" size={30} style={{width: 30, height: 30}}/>
+                                                <Text>预览</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                        : null
+                                }
+
+                                {   //生成静音视频的进度条
                                     !this.state.videoUploaded && this.state.videoUploading
                                         ?
                                         <View>
                                             <View style={styles.progressBox}>
                                                 <View
-                                                    style={[styles.progressBar,{width:width * this.state.videoUploadProgress}]}>
+                                                    style={[styles.progressBar, {width: width * this.state.videoUploadProgress}]}>
                                                 </View>
                                             </View>
                                             <Text>正在生成静音视频，已完成{(this.state.videoUploadProgress * 100).toFixed(2) + '%'}</Text>
@@ -122,25 +158,25 @@ export default class Creation extends Component {
                                 }
 
 
-                                {
+                                {   //开始录音后的视频进度条
                                     this.state.videoUploaded && this.state.counted
                                         ?
-                                            <View style={styles.progressBox}>
-                                                <View
-                                                    style={[styles.progressBar,{width:width * this.state.progress}]}>
-                                                </View>
+                                        <View style={styles.progressBox}>
+                                            <View
+                                                style={[styles.progressBar, {width: width * this.state.progress}]}>
                                             </View>
+                                        </View>
                                         :
                                         null
                                 }
 
 
-                                {
+                                {   //准备开始录音的倒计时
                                     this.state.videoUploaded
                                         ?
-                                        <View style={{flexDirection:'row',justifyContent:'center',marginTop:-20}}>
+                                        <View style={{flexDirection: 'row', justifyContent: 'center', marginTop: -20}}>
                                             <View
-                                                style={[styles.record,this.state.recording && styles.recordOutline ]}>
+                                                style={[styles.record, (this.state.recording || this.state.audioPlaying) && styles.recordOutline]}>
                                                 {
                                                     this.state.countdowning
                                                         ? <CountDownText
@@ -154,10 +190,15 @@ export default class Creation extends Component {
                                                             endText='Go' // 结束的文本
                                                             intervalText={(sec) => sec + ''}/> // 定时的文本回调
                                                         :
-                                                        <TouchableOpacity onPress={()=>this.__counting()}
-                                                                          style={{width:50,height:50}}>
+                                                        <TouchableOpacity onPress={() => this._counting()}
+                                                                          style={{width: 50, height: 50}}>
                                                             <Icon name="ios-mic" size={50}
-                                                                  style={{width:50,height:50,color:'white',textAlign: 'center'}}/>
+                                                                  style={{
+                                                                      width: 50,
+                                                                      height: 50,
+                                                                      color: 'white',
+                                                                      textAlign: 'center'
+                                                                  }}/>
                                                         </TouchableOpacity>
                                                 }
                                             </View>
@@ -165,27 +206,128 @@ export default class Creation extends Component {
                                         : null
                                 }
                             </TouchableOpacity>
-                            {
+                            {   //正在录音中
                                 this.state.recording
                                     ?
-                                    <View style={{flexDirection:'row',justifyContent:'center',marginTop:8}}><Text>录制声音中</Text></View>
+                                    <View
+                                        style={{flexDirection: 'row', justifyContent: 'center', marginTop: 8}}><Text>录制声音中</Text></View>
                                     : null
                             }
 
                         </View>
                         :
-                        <TouchableOpacity onPress={()=>this._pickerVideo()}>
+                        <TouchableOpacity onPress={() => this._pickerVideo()}>
 
                             <View style={styles.middleStyle}>
                                 <Image source={require('./../assets/images/record.png')}
-                                       style={{width:100,height:100}}/>
-                                <Text style={{color:'black',fontSize:15}}>点我上传视频</Text>
+                                       style={{width: 100, height: 100}}/>
+                                <Text style={{color: 'black', fontSize: 15}}>点我上传视频</Text>
                                 <Text>建议时长不超过20秒</Text>
                             </View>
                         </TouchableOpacity>
                 }
             </View>
         )
+    }
+
+    //检查权限
+    _checkPermission = () => {
+        if (Platform.OS !== 'android') {
+            return Promise.resolve(true);
+        }
+
+        const rationale = {
+            'title': 'Microphone Permission',
+            'message': 'AudioExample needs access to your microphone so you can record audio.'
+        };
+
+        return PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, rationale)
+            .then((result) => {
+                console.log('Permission result:', result);
+                return (result === true || result === PermissionsAndroid.RESULTS.GRANTED);
+            });
+    }
+
+    componentDidMount = () => {
+        AsyncStorage.getItem("user")
+            .then((data) => {
+                var user
+                if (data)
+                    user = JSON.parse(data)
+                if (user && user.accessToken) {
+                    this.setState({
+                        user: user
+                    })
+                }
+            })
+        //初始化加上检测音频
+        this._checkPermission().then((hasPermission) => {
+            this.setState({hasPermission});
+
+            if (!hasPermission) return;
+
+            this.prepareRecordingPath(this.state.audioPath);
+
+            AudioRecorder.onProgress = (data) => {
+                this.setState({recordTime: Math.floor(data.currentTime)});
+            };
+
+            AudioRecorder.onFinished = (data) => {
+                // Android callback comes in the form of a promise instead.
+                if (Platform.OS === 'ios') {
+                    this._finishRecording(data.status === "OK", data.audioFileURL);
+                }
+            };
+        });
+    }
+
+    _finishRecording = (didSucceed, filePath) => {
+        this.setState({finished: didSucceed});
+        console.log(`Finished recording of duration ${this.state.recordTime} seconds at path: ${filePath}`);
+    }
+
+
+    //初始化音频
+    prepareRecordingPath = (audioPath) => {
+        AudioRecorder.prepareRecordingAtPath(audioPath, {
+            SampleRate: 22050,
+            Channels: 1,
+            AudioQuality: "Low",
+            AudioEncoding: "aac",
+            AudioEncodingBitRate: 32000
+        });
+    }
+
+    //预览
+    _preview = () => {
+        // if (this.state.audioPlaying)
+        //     AudioRecorder.stopRecording()
+        this.setState({
+            audioPlaying: true,
+            paused: false,
+            progress: 0.0,
+        })
+        this.refs.videoPlayer.seek(0)
+
+        setTimeout(() => {
+            var sound = new Sound(this.state.audioPath, '', (error) => {
+                if (error) {
+                    console.log('failed to load the sound', error);
+                }
+            });
+
+            setTimeout(() => {
+                sound.play((success) => {
+                    if (success) {
+                        console.log('successfully finished playing');
+                    } else {
+                        console.log('playback failed due to audio decoding errors');
+                    }
+                });
+            }, 100);
+        }, 100);
+
+
     }
 
     getQiniuToken = () => {
@@ -204,7 +346,7 @@ export default class Creation extends Component {
                 return
             }
             this.setState({
-                previewVideo: response.uri
+                previewVideo: response.uri,
             })
             //把图片上传到Cloudinary图床
             var timestamp = Date.now()
@@ -237,7 +379,9 @@ export default class Creation extends Component {
         this.setState({
             videoUploading: true,
             videoUploadProgress: 0,
-            videoUploaded: false
+            videoUploaded: false,
+            record: false,
+            audioPlaying: false
         })
         xhr.open('POST', url)
         xhr.onload = () => {
@@ -308,12 +452,27 @@ export default class Creation extends Component {
             paused: false,
             recording: true,
             record: false,
+            progress: 0.0,
         })
         this.refs.videoPlayer.seek(0)
+
+        if (this.state.videoUploaded) {
+
+            if (!this.state.hasPermission) {
+                console.warn('Can\'t record, no permission granted!');
+                return;
+            }
+            try {
+                // 启动音频录制
+                AudioRecorder.startRecording()
+            } catch (error) {
+                console.log(error)
+            }
+        }
         // this._rePlay()
     }
 
-    __counting = () => {
+    _counting = () => {
         this.setState({
             countdowning: true
         })
@@ -359,15 +518,12 @@ export default class Creation extends Component {
             totalTime: totalTime,    //视频加载完毕，设置视频总长度
         })
     }
-
     _onProgress = (data) => {
         // var currentTime = Number(data.currentTime.toFixed(2))
         var currentTime = data.currentTime
         var playableDuration = data.playableDuration
         //比例数，整数，
         var percent = Number((currentTime / this.state.totalTime).toFixed(2));
-        // alert(JSON.stringify(data));
-        // alert(playableDuration);
         var percent = currentTime / this.state.totalTime;
         this.setState({
             currentTime: currentTime,
@@ -379,7 +535,23 @@ export default class Creation extends Component {
         this.setState({
             paused: true,
             recording: false,
+            audioPlaying:false
         })
+        if (this.state.recording) {
+            // 停止音频录制
+            try {
+                const filePath = AudioRecorder.stopRecording()
+                this.setState({
+                    recording: false,
+                    record: true,
+                })
+                if (Platform.OS === 'android') {
+                    this._finishRecording(true, filePath);
+                }
+            } catch (error) {
+                console.log(error)
+            }
+        }
     }
 
     _onError = () => {
